@@ -32,8 +32,7 @@ linear_model <- lm(mkt.part ~ adv.lit.index + AGE_30_40 + AGE_40_50 + AGE_50_60 
     + male + partner + numkids + retired + selfempl + lincome + 
     wq2 + wq3 + wq4, data=finlit)
 
-# Summary of the model to get coefficients and other statistics
-summary(linear_model)
+
 
 # ------------- First stage IV model ---------------
 
@@ -51,8 +50,7 @@ linear_model_1st_stage <- lm(adv.lit.index ~ sibling_worse + sibling_better + pa
     + male + partner + numkids + retired + selfempl + lincome + 
     wq2 + wq3 + wq4, data=finlit)
 
-# Summary of the model to get coefficients and other statistics
-summary(linear_model_1st_stage)
+
 
 fit2 <- ivreg(mkt.part ~ adv.lit.index + AGE_30_40 + AGE_40_50 + AGE_50_60 + AGE_OVER_60 +
     edu3 + edu4 + edu5 + edu6 
@@ -63,7 +61,7 @@ fit2 <- ivreg(mkt.part ~ adv.lit.index + AGE_30_40 + AGE_40_50 + AGE_50_60 + AGE
     + male + partner + numkids + retired + selfempl + lincome + 
     wq2 + wq3 + wq4, data=finlit)
 
-summary(fit2)
+
 
 # Load stargazer library
 library(stargazer)
@@ -98,30 +96,16 @@ coeftest(linear_model_1st_stage, robust_se_linear_model_1st_stage)
 robust_se_fit2 <- sandwich(fit2)
 coeftest(fit2, robust_se_fit2)
 
-# Stargazer with robust standard errors
-stargazer(linear_model, linear_model_1st_stage, fit2, type = "text", 
+# Stargazer for linear_model, linear_model_1st_stage, and fit2
+stargazer <- stargazer(linear_model, linear_model_1st_stage, fit2, type = "html", 
           se = list(sqrt(diag(robust_se_linear_model)), sqrt(diag(robust_se_linear_model_1st_stage)), sqrt(diag(robust_se_fit2))),
-          dep.var.labels = c("Standard OLS", "First stage IV", "Second stage IV in one go"), 
-          covariate.labels = c("Advanced literacy index", "Sibling less financial knowledge", "Sibling better financial knowledge",
-          "Parents intermediate or high financial knowledge", "Parents unknown financial knowledge",
-          "Age 30-40", "Age 40-50", "Age 50-60", "Age over 60", "Intermidiate vocational education", "Secondary pre-university education", 
-          "Higher vocational education", "University education", "Male", "Partner", "Number of children", "Retired", "Self-employed")
-)
-
-stargazer(linear_model, linear_model_1st_stage, fit2, type = "text", 
-          se = list(sqrt(diag(robust_se_linear_model)), sqrt(diag(robust_se_linear_model_1st_stage)), sqrt(diag(robust_se_fit2))),
-          dep.var.labels = c("Standard OLS", "First stage IV", "Second stage IV in one go"), 
+          dep.var.labels = c("Linear probability model", "First stage IV", "Second stage IV in one go"), 
           covariate.labels = c("Advanced literacy index", "Sibling less financial knowledge", "Sibling better financial knowledge",
           "Parents intermediate or high financial knowledge", "Parents unknown financial knowledge", "Age 30-40", "Age 40-50", "Age 50-60", "Age over 60", "Intermidiate vocational education", "Secondary pre-university education", 
           "Higher vocational education", "University education", "Male", "Partner", "Number of children", "Retired", "Self-employed", 
           "Log of income", "Wealth quartile 2", "Wealth quartile 3", "Wealth quartile 4"))
 
-
-# Print stargazer for linear_model, linear_model_1st_stage, and fit2
-summary_table <- stargazer(linear_model, linear_model_1st_stage, fit2, type = "text", report="vc*t", 
-dep.var.labels = c("Standard OLS", "First stage IV", "Second stage IV in one go"))
-
-write(summary_table, file = "summary_table.html")
+write(stargazer, file = "summary_table.html")
 
 # ----------- exogeneity
 # First checking for relevance 

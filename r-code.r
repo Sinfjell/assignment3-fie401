@@ -2,9 +2,8 @@
 require(AER)
 library(sandwich)
 library(lmtest)
+library(stargazer)
 
-
-# BEGIN: yzqjx8d02wtr
 # Read the finlit.csv file
 setwd("/Users/sinfjell/Library/CloudStorage/OneDrive-NorgesHandelshøyskole/FIE401/assignment-3")
 finlit <- read.csv("finlit.csv")
@@ -32,16 +31,12 @@ linear_model <- lm(mkt.part ~ adv.lit.index + AGE_30_40 + AGE_40_50 + AGE_50_60 
     + male + partner + numkids + retired + selfempl + lincome + 
     wq2 + wq3 + wq4, data=finlit)
 
-
-
 # ------------- First stage IV model ---------------
-
 # Create binary variables for sibling's financial situation and parent's financial knowledge
 finlit$sibling_worse <- as.integer(!is.na(finlit$f10) & finlit$f10 == "worse")
 finlit$sibling_better <- as.integer(!is.na(finlit$f10) & finlit$f10 == "better")
 finlit$parent_intermediate_high <- as.integer(!is.na(finlit$f15) & (finlit$f15 == "intermediate or high"))
 finlit$parent_dont_know <- as.integer(!is.na(finlit$f15) & finlit$f15 == "dont know")
-
 
 # Fitting a Linear Probability Model for the first stage of the IV regression
 linear_model_1st_stage <- lm(adv.lit.index ~ sibling_worse + sibling_better + parent_intermediate_high + parent_dont_know +
@@ -50,8 +45,8 @@ linear_model_1st_stage <- lm(adv.lit.index ~ sibling_worse + sibling_better + pa
     + male + partner + numkids + retired + selfempl + lincome + 
     wq2 + wq3 + wq4, data=finlit)
 
-
-
+# ------------- Second stage IV model ---------------
+# Fitting a Linear Probability Model for the second stage of the IV regression at one pass
 fit2 <- ivreg(mkt.part ~ adv.lit.index + AGE_30_40 + AGE_40_50 + AGE_50_60 + AGE_OVER_60 +
     edu3 + edu4 + edu5 + edu6 
     + male + partner + numkids + retired + selfempl + lincome + 
@@ -60,13 +55,6 @@ fit2 <- ivreg(mkt.part ~ adv.lit.index + AGE_30_40 + AGE_40_50 + AGE_50_60 + AGE
     edu3 + edu4 + edu5 + edu6 
     + male + partner + numkids + retired + selfempl + lincome + 
     wq2 + wq3 + wq4, data=finlit)
-
-
-
-# Load stargazer library
-library(stargazer)
-
-
 
 # CORRECTING FOR STANDARD ERRORS
 # First we are performing Breusch-Pagan test to check for heteroscedasity
@@ -110,13 +98,14 @@ write(stargazer, file = "summary_table.html")
 # ----------- exogeneity
 # First checking for relevance 
 # if F is under 10 we have weak instrumental variables that explain little of the variation in the endogenous variable
-#Define H0
-myH0 <- c("sibling_worse = 0", "sibling_better = 0", "parent_dont_know = 0", "parent_intermediate_high = 0")
+# Define H0
+myH0 <- c("sibling_worse = 0", "sibling_better = 0", "parent_dont_know = 0", "parent_intermediate_high = 0") # null hypothesis
+
 #F-statistic 
 linearHypothesis(linear_model_1st_stage, myH0) # over 15, good
 
-finlit$res <- residuals(fit2)
-
+# Checking for exogeneity
+finlit$res <- residuals(fit2) # residuals from the second stage regression
 fit_test <- lm(res ~ sibling_worse + sibling_better + parent_intermediate_high + parent_dont_know + 
     AGE_30_40 + AGE_40_50 + AGE_50_60 + AGE_OVER_60 +
     edu3 + edu4 + edu5 + edu6 

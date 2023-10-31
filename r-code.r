@@ -1,5 +1,8 @@
 # Install libraries
 require(AER)
+library(sandwich)
+library(lmtest)
+
 
 # BEGIN: yzqjx8d02wtr
 # Read the finlit.csv file
@@ -65,9 +68,60 @@ summary(fit2)
 # Load stargazer library
 library(stargazer)
 
-# Print stargazer for linear_model, linear_model_1st_stage, and fit2
+
+
+# CORRECTING FOR STANDARD ERRORS
+# First we are performing Breusch-Pagan test to check for heteroscedasity
+# Perform Breusch-Pagan test on the linear_model
+bp_test_ols <- bptest(linear_model)
+bp_test_1stage <- bptest(linear_model_1st_stage)
+bp_test_2stage <- bptest(fit2)
+
+# Print the result
+cat("Breusch-Pagan Test Results:\n")
+cat("Standard OLS: p-value =", bp_test_ols$p.value, "\n")
+cat("First stage IV: p-value =", bp_test_1stage$p.value, "\n")
+cat("Second stage IV: p-value =", bp_test_2stage$p.value, "\n")
+
+# There is extremely small p-value in all three cases, so we reject the null hypothesis that there is no heteroscedasity. 
+# We need to correct for heteroscedasity
+
+# Robust standard errors for linear_model
+robust_se_linear_model <- vcovHC(linear_model, type = "HC3")
+coeftest(linear_model, robust_se_linear_model)
+
+# Robust standard errors for linear_model_1st_stage
+robust_se_linear_model_1st_stage <- vcovHC(linear_model_1st_stage, type = "HC3")
+coeftest(linear_model_1st_stage, robust_se_linear_model_1st_stage)
+
+# Robust standard errors for fit2
+robust_se_fit2 <- sandwich(fit2)
+coeftest(fit2, robust_se_fit2)
+
+# Stargazer with robust standard errors
 stargazer(linear_model, linear_model_1st_stage, fit2, type = "text", 
+          se = list(sqrt(diag(robust_se_linear_model)), sqrt(diag(robust_se_linear_model_1st_stage)), sqrt(diag(robust_se_fit2))),
+          dep.var.labels = c("Standard OLS", "First stage IV", "Second stage IV in one go"), 
+          covariate.labels = c("Advanced literacy index", "Sibling less financial knowledge", "Sibling better financial knowledge",
+          "Parents intermediate or high financial knowledge", "Parents unknown financial knowledge",
+          "Age 30-40", "Age 40-50", "Age 50-60", "Age over 60", "Intermidiate vocational education", "Secondary pre-university education", 
+          "Higher vocational education", "University education", "Male", "Partner", "Number of children", "Retired", "Self-employed")
+)
+
+stargazer(linear_model, linear_model_1st_stage, fit2, type = "text", 
+          se = list(sqrt(diag(robust_se_linear_model)), sqrt(diag(robust_se_linear_model_1st_stage)), sqrt(diag(robust_se_fit2))),
+          dep.var.labels = c("Standard OLS", "First stage IV", "Second stage IV in one go"), 
+          covariate.labels = c("Advanced literacy index", "Sibling less financial knowledge", "Sibling better financial knowledge",
+          "Parents intermediate or high financial knowledge", "Parents unknown financial knowledge", "Age 30-40", "Age 40-50", "Age 50-60", "Age over 60", "Intermidiate vocational education", "Secondary pre-university education", 
+          "Higher vocational education", "University education", "Male", "Partner", "Number of children", "Retired", "Self-employed", 
+          "Log of income", "Wealth quartile 2", "Wealth quartile 3", "Wealth quartile 4"))
+
+
+# Print stargazer for linear_model, linear_model_1st_stage, and fit2
+summary_table <- stargazer(linear_model, linear_model_1st_stage, fit2, type = "text", report="vc*t", 
 dep.var.labels = c("Standard OLS", "First stage IV", "Second stage IV in one go"))
+
+write(summary_table, file = "summary_table.html")
 
 # ----------- exogeneity
 # First checking for relevance 
@@ -90,3 +144,7 @@ m <- 4 # number of instruments
 k <- 1 # number of endogenous variables
 testval <- m * Fstat # test statistic
 pval <- 1 - pchisq(testval, (m - k)) # p-value
+pval
+testval
+# pval is 11.5% so we cannot reject the null hypothesis that the instruments are exogenous
+
